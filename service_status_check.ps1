@@ -1,167 +1,131 @@
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-# Accept inputs from StackStorm
-$dns_domain = $args[0]
-$service_name = $args[1]
+Param(   
+  [String]$dns_domain ,$service_name
+)
 
 $hostname = hostname
 
 if ($dns_domain) {
-    $Computer = "$hostname.$dns_domain"
+  $Computer = $hostname + '.' + $dns_domain
 } else {
-    $Computer = $hostname
-}
+  $Computer = $hostname
+} 
 
 $CheckHost = $env:COMPUTERNAME
 $ServiceName = $service_name
-$CheckHostIP = [System.Net.Dns]::GetHostAddresses($hostname) | Where-Object { $_.ScopeId -eq $null } | ForEach-Object { $_.IPAddressToString }
-
+$CheckHostIP = [System.Net.Dns]::GetHostAddresses($hostname) | ? { $_.scopeid -eq $null } | % { $_.ipaddresstostring }
 $error.clear()
 
-Write-Output "CHECKDETAILSSTART"
-Write-Output ""
-Write-Output "Server performing checks (IP) : $CheckHost ($CheckHostIP)"
+write-output "CHECKDETAILSSTART"
+write-output ""
+write-output "Server performing checks (IP) : $CheckHost ($CheckHostIP)"
 
 $result = Get-WmiObject -Query "SELECT * FROM Win32_PingStatus WHERE Address = '$Computer'" -ErrorAction Stop
-if ($result.StatusCode -eq 0) {
-    $IP = if ($result.IPV4Address.Address) { $result.IPV4Address } else { $result.IPV6Address }
+if ($result.statuscode -eq 0) {
+  If ($result.IPV4Address.Address) { $IP = $result.IPV4Address }
+  else { $IP = $result.IPV6Address }
 
-    Write-Output "Server name being checked : $Computer"
-    Write-Output "Pingable : true"
-    Write-Output "Pinged IP : $IP"
-    Write-Output "$Computer is pingable"
-    Write-Output ""
-    Write-Output "CHECKDETAILSEND"
-    Write-Output ""
+  write-output "Server name being checked : $Computer"
+  write-output "Pingable : true"
+  write-output "Pinged IP : $IP"
+  write-output "$Computer is pingable"
+  write-output ""
+  write-output "CHECKDETAILSEND"
+  write-output ""
 
-    Try {
-        $SvcName = Get-WmiObject win32_service -Computer $Computer | Where-Object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) }
+  Try {
+    $SvcName = get-wmiobject win32_service -Computer $Computer | where-object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) }
+    if ($?) {
+      write-output ""
+      write-output "SERVICE CHECK SCRIPT BEGIN"
+      write-output ""
+      write-output "Service being checked : $ServiceName"
+      write-output ""
 
-        if ($?) {
-            Write-Output ""
-            Write-Output "SERVICE CHECK SCRIPT BEGIN"
-            Write-Output ""
-            Write-Output "Service being checked : $ServiceName"
-            Write-Output ""
+      $service_result = $null
+      if ($SvcName) {
+        $service_result = get-wmiobject win32_service -Computer $Computer -ErrorVariable badwmi -ErrorAction SilentlyContinue |
+          where-object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) } |
+          select @{name='ServerName';expression={$_.__Server}},Name,DisplayName,PathName,StartName,SystemCreationClassName,ServiceType,State,StartMode,ErrorControl,AcceptPause,DesktopInteract,AcceptStop,Started,ExitCode,CheckPoint,ProcessId,ServiceSpecificExitCode,TagId,TotalSessions,DisconnectedSessions,WaitHint,InstallDate,Status,Description
 
-            $service_result = $null
+        write-output $service_result
 
-            if ($SvcName) {
-                $service_result = Get-WmiObject win32_service -Computer $Computer -ErrorVariable badwmi -ErrorAction SilentlyContinue |
-                    Where-Object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) } |
-                    Select-Object @{name = 'ServerName'; expression = { $_.__Server } }, Name, DisplayName, PathName, StartName,
-                        SystemCreationClassName, ServiceType, State, StartMode, ErrorControl, AcceptPause, DesktopInteract,
-                        AcceptStop, Started, ExitCode, CheckPoint, ProcessId, ServiceSpecificExitCode, TagId, TotalSessions,
-                        DisconnectedSessions, WaitHint, InstallDate, Status, Description
-
-                Write-Output $service_result
-
-                if (($service_result -clike '*State*') -And ($service_result -clike '*Running*')) {
-                    Write-Host "Service state : running on server $Computer"
-                } else {
-                    Write-Host "Service state : stopped on server $Computer"
-                }
-
-                if ($badwmi) {
-                    $badwmi = $badwmi | Out-String
-                    $badwmi = $badwmi.Substring(0, $badwmi.IndexOf("At "))
-                    $badwmi = $badwmi.Substring($badwmi.IndexOf(":") + 2, $badwmi.Length - $badwmi.IndexOf(":") - 3)
-                    Write-Output "Issue : $badwmi"
-                }
-            } else {
-                Write-Output ""
-                if ($ServiceName) {
-                    Write-Host "Service state : not-found on server $Computer"
-                    Write-Output "########## $ServiceName service is not found on server $Computer ##########"
-                } else {
-                    Write-Host "Service state : no-service-passed on to script $Computer"
-                }
-                Write-Output "                                                                                                                                          "
-            }
-
-            Write-Output "SERVICE CHECK SCRIPT END"
-            Write-Output ""
-
-            # --------- HTML OUTPUT SECTION ----------
-            $html_header = @"
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        .section { margin-bottom: 20px; }
-        .header { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { text-align: left; padding: 8px; border: 1px solid #ccc; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-    </style>
-</head>
-<body>
-"@
-
-            $html_footer = "</body></html>"
-
-            $html_host_section = @"
-<div class='section'>
-  <div class='header'>Host Check Details</div>
-  <pre>
-Server performing checks (IP) : $CheckHost ($CheckHostIP)
-Server name being checked     : $Computer
-Pingable                      : true
-Pinged IP                     : $IP
-$Computer is pingable
-  </pre>
-</div>
-"@
-
-            $html_service_section = ""
-            if ($null -ne $service_result) {
-                $html_service_section += @"
-<div class='section'>
-  <div class='header'>Service Check Details</div>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-"@
-                foreach ($prop in $service_result.psobject.Properties) {
-                    $name = $prop.Name
-                    $value = $prop.Value -join "`n"
-                    $value = $value -replace "`r`n", "<br/>"
-                    $html_service_section += "<tr><td><b>$name</b></td><td>$value</td></tr>`n"
-                }
-                $html_service_section += "</table></div>"
-            } else {
-                $html_service_section += @"
-<div class='section'>
-  <div class='header'>Service Check Details</div>
-  <p>Service <b>$ServiceName</b> not found or not provided.</p>
-</div>
-"@
-            }
-
-            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $html_timestamp = @"
-<div class='section'>
-  <div class='header'>Timestamp</div>
-  <p>$timestamp</p>
-</div>
-"@
-
-            $html_output = $html_header + $html_host_section + $html_service_section + $html_timestamp + $html_footer
-
-            Write-Output "`n==============================="
-            Write-Output "HTML_OUTPUT_START"
-            Write-Output $html_output
-            Write-Output "HTML_OUTPUT_END"
-            Write-Output "==============================="
-
-            exit 0
+        if (($service_result -clike '*State*') -And ($service_result -clike '*Running*')) {
+          Write-Host 'Service state : running on server' $Computer
         } else {
-            exit 9999
+          Write-Host 'Service state : stopped on server' $Computer
         }
-    } Catch {
-        exit 9999
+
+        if ($badwmi) {
+          $badwmi = $badwmi | Out-String
+          $badwmi = $badwmi.substring(0, $badwmi.indexof("At "))
+          $badwmi = $badwmi.substring($badwmi.indexof(":") + 2, $badwmi.length - $badwmi.indexof(":") - 3)
+          "Issue : $badwmi"
+        }
+      }
+      else {
+        write-output ""
+        if ($ServiceName) {
+          Write-Host 'Service state : not-found on server' $Computer
+          write-output "########## $ServiceName service is not found on server $Computer ##########"
+        }
+        else {
+          Write-Host 'Service state : no-service-passed on to script' $Computer
+        }
+        write-output "                                                                                                                                          "
+      }
+
+      write-output "SERVICE CHECK SCRIPT END"
+      write-output ""
+
+      # -------------- Minimal HTML Output --------------
+      $html_output = @"
+<html><head><style>
+body { font-family: Arial; font-size: 14px; }
+.section { margin-bottom: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 8px; }
+</style></head><body>
+<div class='section'><h3>Server Check Details</h3>
+<p>Server performing checks (IP): $CheckHost ($CheckHostIP)<br/>
+Server name being checked: $Computer<br/>
+Pingable: true<br/>
+Pinged IP: $IP<br/></p></div>
+"@
+
+      if ($service_result) {
+        $html_output += "<div class='section'><h3>Service Check Details</h3><table><tr><th>Field</th><th>Value</th></tr>`n"
+        foreach ($prop in $service_result.psobject.Properties) {
+          $name = $prop.Name
+          $value = $prop.Value -join "`n" -replace "`r?`n", "<br/>"
+          $html_output += "<tr><td><b>$name</b></td><td>$value</td></tr>`n"
+        }
+        $html_output += "</table></div>"
+      } else {
+        $html_output += "<div class='section'><h3>Service Check Details</h3><p>Service <b>$ServiceName</b> not found or not provided.</p></div>"
+      }
+
+      $html_output += "<div class='section'><h3>Timestamp</h3><p>$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p></div></body></html>"
+
+      Write-Output "==============================="
+      Write-Output "HTML_OUTPUT_START"
+      Write-Output $html_output
+      Write-Output "HTML_OUTPUT_END"
+      Write-Output "==============================="
+
+      # -------------- End HTML Output -------------------
+
+      exit 0
     }
-} else {
-    Write-Output "Server $Computer not pingable from $CheckHost"
-    Write-Output ""
-    Write-Output "CHECKDETAILSEND"
+    else {
+      exit 9999
+    }
+  }
+  Catch {
+    exit 9999
+  }
+}
+write-output "Server $Computer not pingable from $CheckHost"
+write-output ""
+write-output "CHECKDETAILSEND"
+{
 }
