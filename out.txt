@@ -1,0 +1,48 @@
+"CHECKDETAILSSTART
+
+Server performing checks (IP) : AEITASREAPPP02 (10.108.176.136)
+Server name being checked : AEITASREAPPP02
+Pingable : true
+Pinged IP : 10.108.176.136
+AEITASREAPPP02 is pingable
+
+CHECKDETAILSEND
+
+
+SERVICE CHECK SCRIPT BEGIN
+
+Service being checked : TimeBrokerSvc
+
+
+
+ServerName              : AEITASREAPPP02
+Name                    : TimeBrokerSvc
+DisplayName             : Time Broker
+PathName                : C:\\Windows\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p
+StartName               : NT AUTHORITY\\LocalService
+SystemCreationClassName : Win32_ComputerSystem
+ServiceType             : Share Process
+State                   : Running
+StartMode               : Manual
+ErrorControl            : Normal
+AcceptPause             : False
+DesktopInteract         : False
+AcceptStop              : True
+Started                 : True
+ExitCode                : 0
+CheckPoint              : 0
+ProcessId               : 1184
+ServiceSpecificExitCode : 0
+TagId                   : 0
+TotalSessions           :
+DisconnectedSessions    :
+WaitHint                : 0
+InstallDate             :
+Status                  : OK
+Description             : Coordinates execution of background work for WinRT application. If this service is stopped
+                          or disabled, then background work might not be triggered.
+
+Service state : running on server AEITASREAPPP02
+SERVICE CHECK SCRIPT END
+
+
