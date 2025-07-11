@@ -14,7 +14,7 @@ $CheckHost = $env:COMPUTERNAME
 $ServiceName = $service_name
 $CheckHostIP = [System.Net.Dns]::GetHostAddresses($hostname) | ? { $_.scopeid -eq $null } | % { $_.ipaddresstostring }
 $error.clear()
-
+write-output "-NORMAL RESPONSE START-"
 write-output "CHECKDETAILSSTART"
 write-output ""
 write-output "Server performing checks (IP) : $CheckHost ($CheckHostIP)"
@@ -76,6 +76,7 @@ if ($result.statuscode -eq 0) {
 
       write-output "SERVICE CHECK SCRIPT END"
       write-output ""
+      write-output "--NORMAL RESPONSE END-"
 
       # -------------- Minimal HTML Output --------------
       $html_output = @"
@@ -107,9 +108,9 @@ Pinged IP: $IP<br/></p></div>
       $html_output += "<div class='section'><h3>Timestamp</h3><p>$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p></div></body></html>"
 
       Write-Output "==============================="
-      Write-Output "HTML_OUTPUT_START"
+      Write-Output "-HTML RESPONSE START-"
       Write-Output $html_output
-      Write-Output "HTML_OUTPUT_END"
+      Write-Output "-HTML RESPONSE END-"
       Write-Output "==============================="
 
       # -------------- End HTML Output -------------------
