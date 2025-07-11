@@ -10,11 +10,11 @@ if ($dns_domain) {
   $Computer = $hostname + '.' + $dns_domain
 } else {
   $Computer = $hostname
-} 
+}
 
 $CheckHost = $env:COMPUTERNAME
 $ServiceName = $service_name
-$CheckHostIP = [System.Net.Dns]::GetHostAddresses($hostname) | Where-Object { $_.ScopeId -eq $null } | ForEach-Object { $_.IPAddressToString }
+$CheckHostIP = [System.Net.Dns]::GetHostAddresses($hostname) | ? { $_.ScopeId -eq $null } | % { $_.IPAddressToString }
 
 $error.clear()
 
@@ -24,8 +24,7 @@ write-output "Server performing checks (IP) : $CheckHost ($CheckHostIP)"
 
 $result = Get-WmiObject -Query "SELECT * FROM Win32_PingStatus WHERE Address = '$Computer'" -ErrorAction Stop
 if ($result.StatusCode -eq 0) {
-    if ($result.IPV4Address.Address) { $IP = $result.IPV4Address }
-    else { $IP = $result.IPV6Address }
+    if ($result.IPV4Address.Address) { $IP = $result.IPV4Address } else { $IP = $result.IPV6Address }
 
     write-output "Server name being checked : $Computer"
     write-output "Pingable : true"
@@ -48,16 +47,16 @@ if ($result.StatusCode -eq 0) {
             $service_result = $null
 
             if ($SvcName) {
-                $service_result = Get-WmiObject win32_service -Computer $Computer -ErrorVariable badwmi -ErrorAction SilentlyContinue | 
-                    Where-Object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) } | 
-                    Select-Object @{name='ServerName';expression={$_.__Server}},Name,DisplayName,PathName,StartName,SystemCreationClassName,
-                                  ServiceType,State,StartMode,ErrorControl,AcceptPause,DesktopInteract,AcceptStop,Started,
-                                  ExitCode,CheckPoint,ProcessId,ServiceSpecificExitCode,TagId,TotalSessions,DisconnectedSessions,
-                                  WaitHint,InstallDate,Status,Description
+                $service_result = Get-WmiObject win32_service -Computer $Computer -ErrorVariable badwmi -ErrorAction SilentlyContinue |
+                    Where-Object { ($_.Name -eq $ServiceName) -or ($_.DisplayName -eq $ServiceName) } |
+                    Select @{name = 'ServerName'; expression = { $_.__Server } }, Name, DisplayName, PathName, StartName,
+                           SystemCreationClassName, ServiceType, State, StartMode, ErrorControl, AcceptPause, DesktopInteract,
+                           AcceptStop, Started, ExitCode, CheckPoint, ProcessId, ServiceSpecificExitCode, TagId, TotalSessions,
+                           DisconnectedSessions, WaitHint, InstallDate, Status, Description
 
                 write-output $service_result
 
-                if (($service_result -clike '*State*') -and ($service_result -clike '*Running*')) {
+                if (($service_result -clike '*State*') -And ($service_result -clike '*Running*')) {
                     Write-Host 'Service state : running on server' $Computer
                 } else {
                     Write-Host 'Service state : stopped on server' $Computer
@@ -67,9 +66,8 @@ if ($result.StatusCode -eq 0) {
                     $badwmi = $badwmi | Out-String
                     $badwmi = $badwmi.Substring(0, $badwmi.IndexOf("At "))
                     $badwmi = $badwmi.Substring($badwmi.IndexOf(":") + 2, $badwmi.Length - $badwmi.IndexOf(":") - 3)
-                    "Issue : $badwmi"
+                    write-output "Issue : $badwmi"
                 }
-
             } else {
                 write-output ""
                 if ($ServiceName) {
@@ -84,7 +82,7 @@ if ($result.StatusCode -eq 0) {
             write-output "SERVICE CHECK SCRIPT END"
             write-output ""
 
-            # ------- START: HTML Output Generation -------
+            # -------- HTML OUTPUT SECTION ----------
             $html_header = @"
 <html>
 <head>
@@ -123,14 +121,12 @@ $Computer is pingable
   <table>
     <tr><th>Field</th><th>Value</th></tr>
 "@
-
                 foreach ($prop in $service_result.psobject.Properties) {
                     $name = $prop.Name
                     $value = $prop.Value -join "`n"
                     $value = $value -replace "`r`n", "<br/>"
                     $html_service_section += "<tr><td><b>$name</b></td><td>$value</td></tr>`n"
                 }
-
                 $html_service_section += "</table></div>"
             } else {
                 $html_service_section += @"
@@ -157,7 +153,7 @@ $Computer is pingable
             Write-Output "HTML_OUTPUT_END"
             Write-Output "==============================="
 
-            # ------- END: HTML Output Generation -------
+            # -------- END HTML OUTPUT ---------------
 
             exit 0
         } else {
@@ -166,8 +162,8 @@ $Computer is pingable
     } Catch {
         exit 9999
     }
-} else {
-    write-output "Server $Computer not pingable from $CheckHost"
-    write-output ""
-    write-output "CHECKDETAILSEND"
 }
+
+write-output "Server $Computer not pingable from $CheckHost"
+write-output ""
+write-output "CHECKDETAILSEND"
