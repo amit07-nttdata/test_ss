@@ -1,3 +1,5 @@
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 Param(   
   [String]$dns_domain ,$service_name
 )
@@ -42,6 +44,8 @@ if ($result.StatusCode -eq 0) {
             write-output ""
             write-output "Service being checked : $ServiceName"
             write-output ""
+
+            $service_result = $null
 
             if ($SvcName) {
                 $service_result = Get-WmiObject win32_service -Computer $Computer -ErrorVariable badwmi -ErrorAction SilentlyContinue | 
@@ -112,7 +116,7 @@ $Computer is pingable
 "@
 
             $html_service_section = ""
-            if ($service_result) {
+            if ($null -ne $service_result) {
                 $html_service_section += @"
 <div class='section'>
   <div class='header'>🛠 Service Check Details</div>
