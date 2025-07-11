@@ -1,0 +1,60 @@
+ The term 'Param' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At C:\\Users\\AJanarthanan.adm\\AppData\\Local\\Temp\\b3kwypu3.ufi\\script.ps1:3 char:1
++ Param(
++ ~~~~~
+    + CategoryInfo          : ObjectNotFound: (Param:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException"
+  stdout: "CHECKDETAILSSTART
+
+Server performing checks (IP) : AEITASREAPPP02 (10.108.176.136)
+Server name being checked : AEITASREAPPP02
+Pingable : true
+Pinged IP : 10.108.176.136
+AEITASREAPPP02 is pingable
+
+CHECKDETAILSEND
+
+
+SERVICE CHECK SCRIPT BEGIN
+
+Service being checked :
+
+
+Service state : no-service-passed on to script AEITASREAPPP02
+
+SERVICE CHECK SCRIPT END
+
+
+===============================
+HTML_OUTPUT_START
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .section { margin-bottom: 20px; }
+        .header { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; padding: 8px; border: 1px solid #ccc; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body><div class='section'>
+  <div class='header'>\xF0\u0178\u201D\x8D Host Check Details</div>
+  <pre>
+Server performing checks (IP) : AEITASREAPPP02 (10.108.176.136)
+Server name being checked     : AEITASREAPPP02
+Pingable                      : true
+Pinged IP                     : 10.108.176.136
+AEITASREAPPP02 is pingable
+  </pre>
+</div><div class='section'>
+  <div class='header'>\xF0\u0178\u203A\_ Service Check Details</div>
+  <p>Service <b></b> not found or not provided.</p>
+</div><div class='section'>
+  <div class='header'>\xF0\u0178\u2022\u2019 Timestamp</div>
+  <p>2025-07-11 13:41:46</p>
+</div></body></html>
+HTML_OUTPUT_END
+===============================
+"
