@@ -32,19 +32,17 @@ tasks:
       - when: "{{ 'windows' in ctx().tower | lower}}"
         publish:
           - os_type: 'windows'
-        do:
+        do: 
           - check_win_credentials
-
       - when: "{{ 'linux' in ctx().tower | lower or 'unix' in ctx().tower | lower or 'network' in ctx().tower | lower }}"
         publish:
           - os_type: 'linux'
-        do:
+        do: 
           - check_lin_credentials
-
       - when: "{{ ctx().tower not in ['windows', 'linux', 'unix', 'network'] }}"
         publish:
           - final_inc_notes: 'Error: Invalid Tower.'
-        do:
+        do: 
           - noop
 
   check_win_credentials:
@@ -56,7 +54,6 @@ tasks:
           - winrm_password: "{{ ctx().password }}"
         do:
           - check_action
-
       - when: "{{ not ctx().username }}"
         do:
           - check_action
@@ -70,7 +67,6 @@ tasks:
           - linux_password: "{{ ctx().password }}"
         do:
           - check_action
-
       - when: "{{ not ctx().username }}"
         do:
           - check_action
@@ -99,7 +95,8 @@ tasks:
                 <summary>Ping Test Successful</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
-
+        do:
+          - noop
       - when: "{{ succeeded() and '4 received' not in result().stdout }}"
         publish:
           - final_inc_notes: "Ping Failed:\n\n{{ result().stdout }}"
@@ -108,10 +105,11 @@ tasks:
                 <summary>Ping Test Failed</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
-
+        do:
+          - noop
       - when: "{{ failed() }}"
         publish:
-          - final_inc_notes: "Ping Error:\n\n{{ result().stdout }}"
+          - final_inc_notes: "Ping Failed:\n\n{{ result().stdout }}"
           - final_notes: |
               <details open>
                 <summary>Ping Command Error</summary>
@@ -128,7 +126,6 @@ tasks:
           - telnet_command: "nc -zv {{ ctx().ci_name }} 5985 2>&1"
         do:
           - telnet_test
-
       - when: "{{ 'linux' in ctx().os_type | lower }}"
         publish:
           - telnet_command: "nc -zv {{ ctx().ci_name }} 22 2>&1"
@@ -142,21 +139,25 @@ tasks:
     next:
       - when: "{{ 'Connected to' in result().stdout }}"
         publish:
-          - final_inc_notes: "Telnet to port successful:\n\n{{ result().stdout }}"
+          - ping_result: "Ping was not responding. Connection to the server via port is successful."
+          - run_error_cmd_ping: false
+          - final_inc_notes: "Ping was not responding. Connection to the server via port is successful.\n Server Details: {{ ctx().ci_name }}"
           - final_notes: |
               <details open>
                 <summary>Telnet Test Successful</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
-
+        do:
+          - noop
       - when: "{{ 'Connected to' not in result().stdout }}"
         publish:
-          - final_inc_notes: "Telnet Test Failed:\n\n{{ result().stdout }}"
           - final_notes: |
               <details open>
                 <summary>Telnet Test Failed</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
+        do:
+          - noop
 
   get_uptime_windows:
     action: core.winrm_ps_cmd
@@ -168,39 +169,45 @@ tasks:
       port: 5985
       scheme: "https"
       timeout: 300
-      cmd: >
-        $OS=Get-WmiObject win32_operatingsystem;
-        $BootTime=$OS.ConvertToDateTime($OS.LastBootUpTime);
-        $Uptime=$OS.ConvertToDateTime($OS.LocalDateTime)-$BootTime;
-        $Uptime | ForEach-Object{ Write-Host $_.Days days, $_.Hours hours, $_.Minutes minutes }
+      cmd: "$OS=Get-WmiObject win32_operatingsystem;$BootTime=$OS.ConvertToDateTime($OS.LastBootUpTime);$Uptime=$OS.ConvertToDateTime($OS.LocalDateTime)-$BootTime;$Uptime | ForEach-Object{ Write-Host $_.Days days, $_.Hours hours, $_.Minutes minutes}"
     next:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
           - uptime_value: "{{ result().stdout | trim }}"
           - uptime_days: "{{ result().stdout.split(' ')[0] | int }}"
-          - final_inc_notes: "Server Uptime:\n\n{{ result().stdout }}"
+          - final_inc_notes: "Server {{ ctx().ci_name }} Uptime:\n\n{{ result().stdout }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
-
+        do:
+          - noop
       - when: "{{ failed() and 'error' not in result() }}"
         publish:
+          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n{{ result().stdout }}\n{{ result().stderr }}"
+          - run_error: true
+          - run_error_uptime: true
           - final_notes: |
               <details open>
                 <summary>Uptime Command Error</summary>
                 <pre>{{ result().stdout }}
 {{ result().stderr }}</pre>
               </details>
-
+        do:
+          - noop 
       - when: "{{ failed() and 'error' in result() }}"
         publish:
+          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n\n{{ result().error }}"
+          - run_error: true
+          - run_error_uptime: true
           - final_notes: |
               <details open>
                 <summary>Uptime Command Error</summary>
                 <pre>{{ result().error }}</pre>
               </details>
+        do:
+          - noop
