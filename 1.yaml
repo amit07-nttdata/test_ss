@@ -1,0 +1,241 @@
+---
+version: 1.0
+
+description: GenAI Actions
+
+input:
+  - incident_id
+  - ci_name
+  - tower
+  - username
+  - password
+  - winrm_password
+  - winrm_username
+  - linux_username
+  - linux_password
+  - action
+
+vars:
+  - error_message: ""
+  - final_notes: ""
+  - final_inc_notes: ""
+  - command_output: ""
+
+output:
+  - final_notes: "{{ ctx().final_notes }}"
+  - final_inc_notes: "{{ ctx().final_inc_notes }}"
+
+tasks:
+  check_tower:
+    action: core.noop
+    next:
+      - when: "{{ 'windows' in ctx().tower | lower}}"
+        publish:
+          - os_type: 'windows'
+        do: 
+          - check_win_credentials
+      - when: "{{ 'linux' in ctx().tower | lower or 'unix' in ctx().tower | lower or 'network' in ctx().tower | lower }}"
+        publish:
+          - os_type: 'linux'
+        do: 
+          - check_lin_credentials
+      - when: "{{ ctx().tower not in ['windows', 'linux', 'unix', 'network'] }}"
+        publish:
+          - final_inc_notes: 'Error: Invalid Tower.'
+        do: 
+          - noop
+
+  check_win_credentials:
+    action: core.noop
+    next:
+      - when: "{{ ctx().username }}"
+        publish:
+          - winrm_username: "{{ ctx().username }}"
+          - winrm_password: "{{ ctx().password }}"
+        do:
+          - check_action
+      - when: "{{ not ctx().username }}"
+        do:
+          - check_action
+
+  check_lin_credentials:
+    action: core.noop
+    next:
+      - when: "{{ ctx().username }}"
+        publish:
+          - linux_username: "{{ ctx().username }}"
+          - linux_password: "{{ ctx().password }}"
+        do:
+          - check_action
+      - when: "{{ not ctx().username }}"
+        do:
+          - check_action
+
+  check_action:
+    action: core.noop
+    next:
+      - when: "{{ ctx().action == 'Server Reachable' and ctx().os_type | lower == 'windows' }}"
+        do:
+          - execute_windows_command
+
+      - when: "{{ ctx().action == 'Get Server Uptime' and ctx().os_type | lower == 'windows' }}"
+        do:
+          - get_uptime_windows
+
+  execute_windows_command:
+    action: core.local
+    input:
+      cmd: "ping -c 4 {{ ctx().ci_name }}"
+    next:
+      - when: "{{ succeeded() and '4 received' in result().stdout }}"
+        publish:
+          - final_inc_notes: "Ping Successful:\n\n{{ result().stdout }}"
+          - final_notes: |
+              <details open>
+                <summary>Ping Test Successful</summary>
+                <pre>{{ result().stdout }}</pre>
+              </details>
+        do:
+          - noop
+      - when: "{{ succeeded() and '4 received' not in result().stdout }}"
+        publish:
+          - final_inc_notes: "Ping Failed:\n\n{{ result().stdout }}"
+          - final_notes: |
+              <details open>
+                <summary>Ping Test Failed</summary>
+                <pre>{{ result().stdout }}</pre>
+              </details>
+        do:
+          - noop
+      - when: "{{ failed() }}"
+        publish:
+          - final_inc_notes: "Ping Failed:\n\n{{ result().stdout }}"
+          - final_notes: |
+              <details open>
+                <summary>Ping Command Error</summary>
+                <pre>{{ result().stdout }}</pre>
+              </details>
+        do:
+          - check_telnet_port
+
+  check_telnet_port:
+    action: core.noop
+    next:
+      - when: "{{ 'windows' in ctx().os_type | lower }}"
+        publish:
+          - telnet_command: "nc -zv {{ ctx().ci_name }} 5985 2>&1"
+        do:
+          - telnet_test
+      - when: "{{ 'linux' in ctx().os_type | lower }}"
+        publish:
+          - telnet_command: "nc -zv {{ ctx().ci_name }} 22 2>&1"
+        do:
+          - telnet_test
+
+  telnet_test:
+    action: core.local
+    input:
+      cmd: "{{ ctx().telnet_command }}"
+    next:
+      - when: "{{ 'Connected to' in result().stdout }}"
+        publish:
+          - ping_result: "Ping was not responding. Connection to the server via port is successful."
+          - run_error_cmd_ping: false
+          - final_inc_notes: "Ping was not responding. Connection to the server via port is successful.\n Server Details: {{ ctx().ci_name }}"
+          - final_notes: |
+              <details open>
+                <summary>Telnet Test Successful</summary>
+                <pre>{{ result().stdout }}</pre>
+              </details>
+        do:
+          - noop
+      - when: "{{ 'Connected to' not in result().stdout }}"
+        publish:
+          - final_notes: |
+              <details open>
+                <summary>Telnet Test Failed</summary>
+                <pre>{{ result().stdout }}</pre>
+              </details>
+        do:
+          - noop
+
+  get_uptime_windows:
+    action: core.winrm_ps_cmd
+    input:
+      host: "{{ ctx().ci_name }}"
+      password: "{{ ctx().winrm_password }}"
+      username: "{{ ctx().winrm_username }}"
+      verify_ssl_cert: False
+      port: 5985
+      scheme: "https"
+      timeout: 300
+      cmd: >
+          $OS = Get-WmiObject win32_operatingsystem;
+          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
+          $CurrentTime = Get-Date;
+          $Uptime = $CurrentTime - $BootTime;
+          $ComputerName = $env:COMPUTERNAME;
+
+          $LogonUser = try {
+            $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
+            foreach ($event in $events) {
+              $xml = [xml]$event.ToXml()
+              $logonType = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "LogonType" } | Select-Object -ExpandProperty '#text'
+              if ($logonType -eq "2" -or $logonType -eq "10") {
+                $user = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "TargetUserName" } | Select-Object -ExpandProperty '#text'
+                if ($user -and $user -notmatch "^\$$") { return $user }
+              }
+            }
+            "N/A"
+          } catch {
+            "N/A"
+          }
+
+          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
+          $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
+            <tr><th>Server Name</th><td>$ComputerName</td></tr>
+            <tr><th>Current Time</th><td>$CurrentTime</td></tr>
+            <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
+            <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
+            <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
+          </table>";
+          Write-Output $HTML
+    next:
+      - when: "{{ succeeded() }}"
+        publish:
+          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
+          - final_inc_notes: "Server {{ ctx().ci_name }} Uptime Details"
+          - final_notes: |
+              <details open>
+                <summary>Server Uptime</summary>
+                {{ result().stdout }}
+              </details>
+        do:
+          - noop
+      - when: "{{ failed() and 'error' not in result() }}"
+        publish:
+          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
+          - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n{{ result().stdout }}\n{{ result().stderr }}"
+          - run_error: true
+          - run_error_uptime: true
+          - final_notes: |
+              <details open>
+                <summary>Uptime Command Error</summary>
+                <pre>{{ result().stdout }}
+                {{ result().stderr }}</pre>
+              </details>
+        do:
+          - noop 
+      - when: "{{ failed() and 'error' in result() }}"
+        publish:
+          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
+          - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n\n{{ result().error }}"
+          - run_error: true
+          - run_error_uptime: true
+          - final_notes: |
+              <details open>
+                <summary>Uptime Command Error</summary>
+                <pre>{{ result().error }}</pre>
+              </details>
+        do:
+          - noop
