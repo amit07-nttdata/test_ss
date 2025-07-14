@@ -170,12 +170,12 @@ tasks:
       scheme: "https"
       timeout: 300
       cmd: >
-        $OS = Get-WmiObject win32_operatingsystem;
-        $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
-        $CurrentTime = Get-Date;
-        $Uptime = $CurrentTime - $BootTime;
-        $ComputerName = $env:COMPUTERNAME;
-  
+        $OS = Get-WmiObject win32_operatingsystem
+        $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime)
+        $CurrentTime = Get-Date
+        $Uptime = $CurrentTime - $BootTime
+        $ComputerName = $env:COMPUTERNAME
+        
         $LogonUser = try {
           $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
           foreach ($event in $events) {
@@ -190,30 +190,38 @@ tasks:
         } catch {
           "N/A"
         }
-  
-        $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
+        
+        $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes"
+        
         $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
           <tr><th>Server Name</th><td>$ComputerName</td></tr>
           <tr><th>Current Time</th><td>$CurrentTime</td></tr>
           <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
           <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
           <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
-        </table>";
-        Write-Output "##UPTIME## $UptimeFriendly"
-        Write-Output $HTML
+        </table>"
+        
+        # Emit both clearly with marker
+        Write-Output "###UPTIME_START###"
+        Write-Output "$UptimeFriendly"
+        Write-Output "###UPTIME_END###"
+        
+        Write-Output "###HTML_START###"
+        Write-Output "$HTML"
+        Write-Output "###HTML_END###"
+
     next:
       - when: "{{ succeeded() }}"
         publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - uptime_value: "{{ result().stdout | regex_replace('(?s).*##UPTIME## (.*?)\\r?\\n.*', '\\1') }}"
+          - uptime_value: "{{ result().stdout | regex_search('###UPTIME_START###\\r?\\n(.*?)\\r?\\n###UPTIME_END###', '\\1') }}"
           - final_inc_notes: "{{ ctx().uptime_value }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
-                {{ result().stdout }}
+                {{ result().stdout | regex_search('###HTML_START###\\r?\\n(.*?)\\r?\\n###HTML_END###', '\\1') }}
               </details>
         do:
-          - noop 
+          - noop
       - when: "{{ failed() and 'error' not in result() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
