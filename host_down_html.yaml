@@ -205,15 +205,15 @@ tasks:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - final_inc_notes: "{{ result().stdout | regex_search('##UPTIME## (.*)', '\\1') or 'Uptime not found' }}"
+          - uptime_value: "{{ result().stdout | regex_search('##UPTIME## (.*)', '\\1') or 'Uptime not found' }}"
+          - final_inc_notes: "{{ ctx().uptime_value }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
                 {{ result().stdout }}
               </details>
         do:
-          - noop
-        
+          - noop 
       - when: "{{ failed() and 'error' not in result() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
