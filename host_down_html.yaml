@@ -199,12 +199,13 @@ tasks:
             <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
             <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
           </table>";
+          Write-Output "##UPTIME## $UptimeFriendly"
           Write-Output $HTML
     next:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - final_inc_notes: "Server {{ ctx().ci_name }} Uptime Details"
+          - final_inc_notes: "{{ result().stdout.split('\n') | select('search', '^##UPTIME##') | first | replace('##UPTIME## ', '') }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
