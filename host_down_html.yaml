@@ -170,42 +170,42 @@ tasks:
       scheme: "https"
       timeout: 300
       cmd: >
-          $OS = Get-WmiObject win32_operatingsystem;
-          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
-          $CurrentTime = Get-Date;
-          $Uptime = $CurrentTime - $BootTime;
-          $ComputerName = $env:COMPUTERNAME;
-
-          $LogonUser = try {
-            $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
-            foreach ($event in $events) {
-              $xml = [xml]$event.ToXml()
-              $logonType = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "LogonType" } | Select-Object -ExpandProperty '#text'
-              if ($logonType -eq "2" -or $logonType -eq "10") {
-                $user = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "TargetUserName" } | Select-Object -ExpandProperty '#text'
-                if ($user -and $user -notmatch "^\$$") { return $user }
-              }
+        $OS = Get-WmiObject win32_operatingsystem;
+        $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
+        $CurrentTime = Get-Date;
+        $Uptime = $CurrentTime - $BootTime;
+        $ComputerName = $env:COMPUTERNAME;
+  
+        $LogonUser = try {
+          $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
+          foreach ($event in $events) {
+            $xml = [xml]$event.ToXml()
+            $logonType = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "LogonType" } | Select-Object -ExpandProperty '#text'
+            if ($logonType -eq "2" -or $logonType -eq "10") {
+              $user = $xml.Event.EventData.Data | Where-Object { $_.Name -eq "TargetUserName" } | Select-Object -ExpandProperty '#text'
+              if ($user -and $user -notmatch "^\$$") { return $user }
             }
-            "N/A"
-          } catch {
-            "N/A"
           }
-
-          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
-          $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
-            <tr><th>Server Name</th><td>$ComputerName</td></tr>
-            <tr><th>Current Time</th><td>$CurrentTime</td></tr>
-            <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
-            <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
-            <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
-          </table>";
-          Write-Output "##UPTIME## $UptimeFriendly"
-          Write-Output $HTML
+          "N/A"
+        } catch {
+          "N/A"
+        }
+  
+        $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
+        $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
+          <tr><th>Server Name</th><td>$ComputerName</td></tr>
+          <tr><th>Current Time</th><td>$CurrentTime</td></tr>
+          <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
+          <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
+          <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
+        </table>";
+        Write-Output "##UPTIME## $UptimeFriendly"
+        Write-Output $HTML
     next:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - final_inc_notes: "{{ (result().stdout.split('\n') | select('search', '^##UPTIME##') | list | first).replace('##UPTIME## ', '') if (result().stdout.split('\n') | select('search', '^##UPTIME##') | list | first) else 'Uptime not found' }}"
+          - final_inc_notes: "{{ result().stdout | regex_search('##UPTIME## (.*)', '\\1') or 'Uptime not found' }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
@@ -213,6 +213,7 @@ tasks:
               </details>
         do:
           - noop
+        
       - when: "{{ failed() and 'error' not in result() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
