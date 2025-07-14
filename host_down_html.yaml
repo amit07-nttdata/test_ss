@@ -95,12 +95,7 @@ tasks:
         publish:
           - final_inc_notes: "Ping Successful:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Ping Test Successful</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -109,12 +104,7 @@ tasks:
         publish:
           - final_inc_notes: "Ping Failed:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Ping Test Failed</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -123,12 +113,7 @@ tasks:
         publish:
           - final_inc_notes: "Ping Error:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Ping Command Error</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -159,12 +144,7 @@ tasks:
         publish:
           - final_inc_notes: "Telnet to port successful:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Telnet Test Successful</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -173,12 +153,7 @@ tasks:
         publish:
           - final_inc_notes: "Telnet Test Failed:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Telnet Test Failed</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -206,12 +181,7 @@ tasks:
           - uptime_days: "{{ result().stdout.split(' ')[0] | int }}"
           - final_inc_notes: "Server Uptime:\n\n{{ result().stdout }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Server Uptime</summary>
                 <pre>{{ result().stdout }}</pre>
               </details>
@@ -220,27 +190,17 @@ tasks:
         publish:
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n{{ result().stdout }}\n{{ result().stderr }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Uptime Command Error</summary>
                 <pre>{{ result().stdout }}
-                {{ result().stderr }}</pre>
+{{ result().stderr }}</pre>
               </details>
 
       - when: "{{ failed() and 'error' in result() }}"
         publish:
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n\n{{ result().error }}"
           - final_notes: |
-              <style>
-                .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
-                .section summary { background: #f5f5f5; padding: 10px; font-weight: bold; cursor: pointer; }
-                .section pre { margin: 0; padding: 10px; background: #fafafa; font-family: Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-              </style>
-              <details class="section" open>
+              <details open>
                 <summary>Uptime Command Error</summary>
                 <pre>{{ result().error }}</pre>
               </details>
