@@ -211,8 +211,22 @@ tasks:
       - when: "{{ succeeded() }}"
         publish:
           - command_output: "{{ result().stdout }}"
-          - html_output: "{{ result().stdout.split('-HTML RESPONSE START-')[-1].split('-HTML RESPONSE END-')[0] | trim }}"
-          - uptime_value: "{{ result().stdout.split('-NORMAL RESPONSE START-')[-1].split('-NORMAL RESPONSE END-')[0] | trim }}"
+          - html_output: >-
+              {{
+                result().stdout.splitlines()
+                | selectattr('strip', '!=', '')
+                | list
+                | slice(result().stdout.splitlines().index('-HTML RESPONSE START-') + 1, result().stdout.splitlines().index('-HTML RESPONSE END-'))
+                | join('\n')
+              }}
+          - uptime_value: >-
+              {{
+                result().stdout.splitlines()
+                | selectattr('strip', '!=', '')
+                | list
+                | slice(result().stdout.splitlines().index('-NORMAL RESPONSE START-') + 1, result().stdout.splitlines().index('-NORMAL RESPONSE END-'))
+                | join('\n')
+              }}
           - final_notes: "{{ ctx().uptime_value }}"
           - final_inc_notes: |
               <details open>
