@@ -1,14 +1,2 @@
-  errors:
-  - message: 'JinjaEvaluationException: Unable to evaluate expression ''{{ result().stdout | from_json }}''. TemplateAssertionError: no filter named ''from_json'''
-    route: 2
-    task_id: get_uptime_windows
-    task_transition_id: noop__t0
-    type: error
-  - message: 'JinjaEvaluationException: Unable to evaluate expression ''{{ ctx().uptime_json[''Server Name''] }}''. UndefinedError: ''dict object'' has no attribute ''uptime_json'''
-    route: 2
-    task_id: get_uptime_windows
-    task_transition_id: noop__t0
-    type: error
-  output:
-    final_inc_notes: 'Error: Invalid Tower.'
-    final_notes: ''
+    final_inc_notes: '{{ result().stdout.split(''
+      '') | select(''search'', ''^##UPTIME##'') | first | replace(''##UPTIME## '', '''') }}'
