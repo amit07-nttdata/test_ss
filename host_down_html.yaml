@@ -1,4 +1,4 @@
----
++---
 version: 1.0
 
 description: GenAI Actions
@@ -218,10 +218,7 @@ tasks:
 
       - when: "{{ failed() and 'error' not in result() }}"
         publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n{{ result().stdout }}\n{{ result().stderr }}"
-          - run_error: true
-          - run_error_uptime: true
           - final_notes: |
               <style>
                 .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
@@ -236,10 +233,7 @@ tasks:
 
       - when: "{{ failed() and 'error' in result() }}"
         publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
           - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n\n{{ result().error }}"
-          - run_error: true
-          - run_error_uptime: true
           - final_notes: |
               <style>
                 .section { margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
