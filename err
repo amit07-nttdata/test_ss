@@ -1,0 +1,6 @@
+ errors:
+  - message: "Failed to load workflow definition because while scanning a simple key
+  in "<unicode string>", line 234, column 1
+could not find expected ':'
+  in "<unicode string>", line 237, column 13."
+  output: null
