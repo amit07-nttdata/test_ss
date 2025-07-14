@@ -1,48 +1,21 @@
-"CHECKDETAILSSTART
+  output:
+    final_inc_notes: "<details open>
+  <summary>Server Uptime</summary>
 
-Server performing checks (IP) : AEITASREAPPP02 (10.108.176.136)
-Server name being checked : AEITASREAPPP02
-Pingable : true
-Pinged IP : 10.108.176.136
-AEITASREAPPP02 is pingable
+Write-Output
+<table border='1' cellpadding='4' cellspacing='0'>
+  <tr><th>Server Name</th><td>AEITASREAPPP02</td></tr>
+  <tr><th>Current Time</th><td>07/14/2025 14:12:17</td></tr>
+  <tr><th>Last Reboot Time</th><td>07/09/2025 03:14:09</td></tr>
+  <tr><th>Uptime</th><td>5 days 10 hours 58 minutes</td></tr>
+  <tr><th>Last Logged-on User</th><td>N/A</td></tr>
+</table>
+Write-Output
 
-CHECKDETAILSEND
-
-
-SERVICE CHECK SCRIPT BEGIN
-
-Service being checked : TimeBrokerSvc
-
-
-
-ServerName              : AEITASREAPPP02
-Name                    : TimeBrokerSvc
-DisplayName             : Time Broker
-PathName                : C:\\Windows\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p
-StartName               : NT AUTHORITY\\LocalService
-SystemCreationClassName : Win32_ComputerSystem
-ServiceType             : Share Process
-State                   : Running
-StartMode               : Manual
-ErrorControl            : Normal
-AcceptPause             : False
-DesktopInteract         : False
-AcceptStop              : True
-Started                 : True
-ExitCode                : 0
-CheckPoint              : 0
-ProcessId               : 1184
-ServiceSpecificExitCode : 0
-TagId                   : 0
-TotalSessions           :
-DisconnectedSessions    :
-WaitHint                : 0
-InstallDate             :
-Status                  : OK
-Description             : Coordinates execution of background work for WinRT application. If this service is stopped
-                          or disabled, then background work might not be triggered.
-
-Service state : running on server AEITASREAPPP02
-SERVICE CHECK SCRIPT END
-
-
+</details>
+"
+    final_notes: "
+Write-Output
+5 days 10 hours 58 minutes
+Write-Output
+"
