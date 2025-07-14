@@ -170,11 +170,11 @@ tasks:
       scheme: "https"
       timeout: 300
       cmd: >
-          $OS = Get-WmiObject win32_operatingsystem
-          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime)
-          $CurrentTime = Get-Date
-          $Uptime = $CurrentTime - $BootTime
-          $ComputerName = $env:COMPUTERNAME
+          $OS = Get-WmiObject win32_operatingsystem;
+          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
+          $CurrentTime = Get-Date;
+          $Uptime = $CurrentTime - $BootTime;
+          $ComputerName = $env:COMPUTERNAME;
           
           $LogonUser = try {
             $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
@@ -191,7 +191,7 @@ tasks:
             "N/A"
           }
           
-          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes"
+          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
           
           $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
             <tr><th>Server Name</th><td>$ComputerName</td></tr>
