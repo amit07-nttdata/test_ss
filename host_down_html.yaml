@@ -205,7 +205,7 @@ tasks:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - final_inc_notes: "{{ (result().stdout.split('\n') | select('search', '^##UPTIME##') | list | first).replace('##UPTIME## ', '') if (result().stdout.split('\n') | select('search', '^#UPTIME') | list | first) else 'Uptime not found' }}"
+          - final_inc_notes: "{{ (result().stdout.split('\n') | select('search', '^##UPTIME##') | list | first).replace('##UPTIME## ', '') if (result().stdout.split('\n') | select('search', '^##UPTIME##') | list | first) else 'Uptime not found' }}"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
