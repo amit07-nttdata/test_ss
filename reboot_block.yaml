@@ -15,64 +15,23 @@
         $Uptime = $CurrentTime - $BootTime;
         $ComputerName = $env:COMPUTERNAME;
         $LastUser = (Get-WmiObject Win32_ComputerSystem).UserName;
-        $Result = [PSCustomObject]@{
-          "Server Name" = $ComputerName;
-          "Current Time" = $CurrentTime;
-          "Last Reboot Time" = $BootTime;
-          "Uptime (Days)" = $Uptime.Days;
-          "Uptime (HH:MM)" = ("{0:D2}:{1:D2}" -f $Uptime.Hours, $Uptime.Minutes);
-          "Last Logged-on User" = $LastUser
-        };
-        $Result | ConvertTo-Json -Compress
+        $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
+          <tr><th>Server Name</th><td>$ComputerName</td></tr>
+          <tr><th>Current Time</th><td>$CurrentTime</td></tr>
+          <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
+          <tr><th>Uptime</th><td>$($Uptime.Days) days $($Uptime.Hours):$($Uptime.Minutes) (HH:MM)</td></tr>
+          <tr><th>Last Logged-on User</th><td>$LastUser</td></tr>
+        </table>";
+        Write-Output $HTML
     next:
       - when: "{{ succeeded() }}"
         publish:
           - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - uptime_json: "{{ result().stdout | from_json }}"
-          - final_inc_notes: |
-              Server {{ ctx().ci_name }} Uptime Details:
-              Server Name: {{ ctx().uptime_json['Server Name'] }}
-              Last Reboot Time: {{ ctx().uptime_json['Last Reboot Time'] }}
-              Current Time: {{ ctx().uptime_json['Current Time'] }}
-              Uptime: {{ ctx().uptime_json['Uptime (Days)'] }} days {{ ctx().uptime_json['Uptime (HH:MM)'] }}
-              Last Logged-on User: {{ ctx().uptime_json['Last Logged-on User'] }}
+          - final_inc_notes: "Server {{ ctx().ci_name }} Uptime Details"
           - final_notes: |
               <details open>
                 <summary>Server Uptime</summary>
-                <table border="1" cellpadding="4" cellspacing="0">
-                  <tr><th>Server Name</th><td>{{ ctx().uptime_json['Server Name'] }}</td></tr>
-                  <tr><th>Current Time</th><td>{{ ctx().uptime_json['Current Time'] }}</td></tr>
-                  <tr><th>Last Reboot Time</th><td>{{ ctx().uptime_json['Last Reboot Time'] }}</td></tr>
-                  <tr><th>Uptime</th><td>{{ ctx().uptime_json['Uptime (Days)'] }} days {{ ctx().uptime_json['Uptime (HH:MM)'] }}</td></tr>
-                  <tr><th>Last Logged-on User</th><td>{{ ctx().uptime_json['Last Logged-on User'] }}</td></tr>
-                </table>
-              </details>
-        do:
-          - noop
-      - when: "{{ failed() and 'error' not in result() }}"
-        publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n{{ result().stdout }}\n{{ result().stderr }}"
-          - run_error: true
-          - run_error_uptime: true
-          - final_notes: |
-              <details open>
-                <summary>Uptime Command Error</summary>
-                <pre>{{ result().stdout }}
-{{ result().stderr }}</pre>
-              </details>
-        do:
-          - noop 
-      - when: "{{ failed() and 'error' in result() }}"
-        publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - error_message: "Automation not able to connect to {{ ctx().ci_name }}.\n\n{{ result().error }}"
-          - run_error: true
-          - run_error_uptime: true
-          - final_notes: |
-              <details open>
-                <summary>Uptime Command Error</summary>
-                <pre>{{ result().error }}</pre>
+                {{ result().stdout }}
               </details>
         do:
           - noop
