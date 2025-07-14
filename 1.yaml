@@ -170,12 +170,12 @@ tasks:
       scheme: "https"
       timeout: 300
       cmd: >
-          $OS = Get-WmiObject win32_operatingsystem;
-          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime);
-          $CurrentTime = Get-Date;
-          $Uptime = $CurrentTime - $BootTime;
-          $ComputerName = $env:COMPUTERNAME;
-
+          $OS = Get-WmiObject win32_operatingsystem
+          $BootTime = $OS.ConvertToDateTime($OS.LastBootUpTime)
+          $CurrentTime = Get-Date
+          $Uptime = $CurrentTime - $BootTime
+          $ComputerName = $env:COMPUTERNAME
+          
           $LogonUser = try {
             $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} -MaxEvents 50
             foreach ($event in $events) {
@@ -190,25 +190,34 @@ tasks:
           } catch {
             "N/A"
           }
-
-          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes";
+          
+          $UptimeFriendly = "$($Uptime.Days) days $($Uptime.Hours) hours $($Uptime.Minutes) minutes"
+          
           $HTML = "<table border='1' cellpadding='4' cellspacing='0'>
             <tr><th>Server Name</th><td>$ComputerName</td></tr>
             <tr><th>Current Time</th><td>$CurrentTime</td></tr>
             <tr><th>Last Reboot Time</th><td>$BootTime</td></tr>
             <tr><th>Uptime</th><td>$UptimeFriendly</td></tr>
             <tr><th>Last Logged-on User</th><td>$LogonUser</td></tr>
-          </table>";
+          </table>"
+          
+          Write-Output "-HTML RESPONSE START-"
           Write-Output $HTML
+          Write-Output "-HTML RESPONSE END-"
+          Write-Output "-NORMAL RESPONSE START-"
+          Write-Output $UptimeFriendly
+          Write-Output "-NORMAL RESPONSE END-"
     next:
       - when: "{{ succeeded() }}"
         publish:
-          - end_timestamp: "{{ task('get_uptime_windows').end_timestamp }}"
-          - final_inc_notes: "Server {{ ctx().ci_name }} Uptime Details"
-          - final_notes: |
+          - command_output: "{{ result().stdout }}"
+          - html_output: "{{ result().stdout.split('-HTML RESPONSE START-')[-1].split('-HTML RESPONSE END-')[0] | trim }}"
+          - uptime_value: "{{ result().stdout.split('-NORMAL RESPONSE START-')[-1].split('-NORMAL RESPONSE END-')[0] | trim }}"
+          - final_notes: "{{ ctx().uptime_value }}"
+          - final_inc_notes: |
               <details open>
                 <summary>Server Uptime</summary>
-                {{ result().stdout }}
+                {{ ctx().html_output }}
               </details>
         do:
           - noop
