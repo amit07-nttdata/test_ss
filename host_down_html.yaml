@@ -228,7 +228,7 @@ tasks:
               <details class="section" open>
                 <summary>Uptime Command Error</summary>
                 <pre>{{ result().stdout }}
-{{ result().stderr }}</pre>
+                {{ result().stderr }}</pre>
               </details>
 
       - when: "{{ failed() and 'error' in result() }}"
